@@ -1,0 +1,37 @@
+{
+  "name": "voice-chat-app",
+  "version": "1.0.0",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "client": "vite",
+    "build": "vite build",
+    "dev:all": "concurrently \"npm run dev\" \"npm run client\""
+  },
+  "keywords": [
+    "voice",
+    "chat",
+    "ai",
+    "vapi"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "A voice chat application with AI using VAPI",
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "markdown-it": "^14.1.0",
+    "multer": "^1.4.5-lts.2",
+    "sqlite3": "^5.1.7",
+    "uuid": "^11.1.0",
+    "vapi": "^0.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.10",
+    "vite": "^6.3.5"
+  }
+}

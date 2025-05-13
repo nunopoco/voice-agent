@@ -1,0 +1,150 @@
+const express = require('express');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+const markdownIt = require('markdown-it')();
+require('dotenv').config();
+
+const { initializeDatabase } = require('./database/init');
+const dbService = require('./database/service');
+
+// Initialize database
+const db = initializeDatabase();
+
+const app = express();
+const PORT = process.env.PORT || 12000;
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = process.env.UPLOADS_PATH || './server/uploads';
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// Middleware
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Routes
+app.get('/api/user', (req, res) => {
+  let userId = req.cookies.userId;
+  
+  if (!userId) {
+    userId = uuidv4();
+    res.cookie('userId', userId, { 
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+  }
+  
+  res.json({ userId });
+});
+
+// Get conversation history
+app.get('/api/conversations', async (req, res) => {
+  try {
+    const userId = req.cookies.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    const conversations = await dbService.getConversationHistory(userId);
+    res.json(conversations);
+  } catch (error) {
+    console.error('Error fetching conversations:', error);
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  }
+});
+
+// Save conversation message
+app.post('/api/conversations', async (req, res) => {
+  try {
+    const userId = req.cookies.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    const { message, role } = req.body;
+    if (!message || !role) {
+      return res.status(400).json({ error: 'Message and role are required' });
+    }
+    
+    const id = await dbService.saveConversation(userId, message, role);
+    res.status(201).json({ id, userId, message, role });
+  } catch (error) {
+    console.error('Error saving conversation:', error);
+    res.status(500).json({ error: 'Failed to save conversation' });
+  }
+});
+
+// File upload endpoint
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    const userId = req.cookies.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    // Read the file content
+    const filePath = req.file.path;
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    
+    // Convert to markdown (simplified version - in a real app, you'd use a proper parser based on file type)
+    const markdownContent = `# File: ${req.file.originalname}\n\n\`\`\`\n${fileContent}\n\`\`\``;
+    
+    // Save file info to database
+    await dbService.saveUploadedFile(userId, req.file.originalname, markdownContent);
+    
+    // Delete the file after processing
+    fs.unlinkSync(filePath);
+    
+    res.status(201).json({ 
+      message: 'File uploaded and processed successfully',
+      filename: req.file.originalname
+    });
+  } catch (error) {
+    console.error('Error processing file upload:', error);
+    res.status(500).json({ error: 'Failed to process file upload' });
+  }
+});
+
+// Get uploaded files
+app.get('/api/uploads', async (req, res) => {
+  try {
+    const userId = req.cookies.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    const files = await dbService.getUploadedFiles(userId);
+    res.json(files);
+  } catch (error) {
+    console.error('Error fetching uploaded files:', error);
+    res.status(500).json({ error: 'Failed to fetch uploaded files' });
+  }
+});
+
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
