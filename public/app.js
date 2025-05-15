@@ -34,6 +34,27 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isServiceAvailable) {
         // Initialize Retell Web Client
         initRetellClient();
+        
+        // Request microphone permission early
+        try {
+          console.log('Requesting microphone permission on page load...');
+          updateStatus('Requesting microphone access...', 'info');
+          
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          console.log('Microphone permission granted on page load!');
+          updateStatus('Microphone access granted', 'success');
+          
+          // Stop the stream immediately - we just needed the permission
+          stream.getTracks().forEach(track => track.stop());
+          
+          // Reset status after a delay
+          setTimeout(() => {
+            updateStatus('Tap to start call');
+          }, 2000);
+        } catch (micError) {
+          console.error('Microphone permission denied on page load:', micError);
+          updateStatus('Please allow microphone access to use voice features', 'error');
+        }
       } else {
         // Show service unavailable message
         showServiceUnavailableMessage();
@@ -311,6 +332,20 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       updateStatus('Starting call...');
       
+      // First, explicitly request microphone permission
+      try {
+        console.log('Requesting microphone permission...');
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('Microphone permission granted!');
+        
+        // Stop the stream immediately - we just needed the permission
+        stream.getTracks().forEach(track => track.stop());
+      } catch (micError) {
+        console.error('Microphone permission denied:', micError);
+        updateStatus('Microphone access denied. Please allow microphone access.', 'error');
+        throw new Error('Microphone permission denied');
+      }
+      
       // Get call token from server
       const response = await fetch('/api/call', {
         method: 'POST',
@@ -373,6 +408,16 @@ document.addEventListener('DOMContentLoaded', () => {
       
     } catch (error) {
       console.error('Error starting call:', error);
+      
+      // Check if it's a microphone permission error
+      if (error.message && (
+          error.message.includes('Permission denied') || 
+          error.message.includes('Microphone permission denied') ||
+          error.message.includes('NotAllowedError')
+        )) {
+        updateStatus('Microphone access denied. Please allow microphone access and try again.', 'error');
+        return;
+      }
       
       // Check if the error is related to service unavailability
       if (error.message && (
