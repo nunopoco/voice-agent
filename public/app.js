@@ -175,6 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("Agent stopped talking");
       waveContainer.classList.add('hidden');
       updateStatus("Listening...");
+      
+      // Stop the audio when AI stops speaking
+      audioPlayer.pause();
+      audioPlayer.currentTime = 0;
     });
     
     // Update message such as transcript
@@ -266,14 +270,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function playAISound() {
-    // Play a sound when AI is speaking (optional)
-    // This could be a subtle notification sound
+    // Play a sound when AI is speaking
     try {
-      audioPlayer.src = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+      // Use local sound file
+      audioPlayer.src = 'sounds/wave-sound.mp3';
       audioPlayer.volume = 0.3; // Lower volume
-      audioPlayer.play().catch(e => console.log('Could not play sound:', e));
+      audioPlayer.loop = true; // Loop the sound while AI is speaking
+      
+      // Play the sound and handle any errors
+      audioPlayer.play()
+        .then(() => console.log('Playing AI sound'))
+        .catch(e => {
+          console.error('Could not play sound:', e);
+          // Try to autoplay with user interaction
+          document.addEventListener('click', function audioPlayHandler() {
+            audioPlayer.play();
+            document.removeEventListener('click', audioPlayHandler);
+          }, { once: true });
+        });
     } catch (error) {
-      console.log('Could not play AI sound:', error);
+      console.error('Could not play AI sound:', error);
     }
   }
   
