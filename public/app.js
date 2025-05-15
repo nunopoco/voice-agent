@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       userId = data.userId;
       
+      // Preload audio
+      preloadAudio();
+      
       // Initialize Retell Web Client
       initRetellClient();
       
@@ -34,6 +37,32 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Error initializing app:', error);
       updateStatus('Failed to initialize. Please refresh the page.', 'error');
     }
+  }
+  
+  function preloadAudio() {
+    // Preload the audio file
+    console.log('Preloading audio...');
+    audioPlayer.src = 'sounds/wave-sound.mp3';
+    audioPlayer.load();
+    audioPlayer.volume = 0.3;
+    audioPlayer.loop = true;
+    
+    // Add event listeners for audio
+    audioPlayer.addEventListener('canplaythrough', () => {
+      console.log('Audio is ready to play');
+    });
+    
+    audioPlayer.addEventListener('error', (e) => {
+      console.error('Audio error:', e);
+    });
+    
+    // Enable audio on first user interaction (to bypass autoplay restrictions)
+    document.addEventListener('click', function enableAudio() {
+      // Create and play a silent audio to enable audio
+      const silentAudio = new Audio('data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU4LjU0AAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV');
+      silentAudio.play().catch(e => console.log('Silent audio play failed:', e));
+      document.removeEventListener('click', enableAudio);
+    }, { once: true });
   }
   
   function initRetellClient() {
@@ -82,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Simulate agent talking after a delay
     setTimeout(() => {
+      console.log('Mock: Agent starts talking');
       if (window.mockCallbacks && window.mockCallbacks.agent_start_talking) {
         window.mockCallbacks.agent_start_talking();
       }
@@ -97,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Simulate agent stopping talking after a delay
       setTimeout(() => {
+        console.log('Mock: Agent stops talking');
         if (window.mockCallbacks && window.mockCallbacks.agent_stop_talking) {
           window.mockCallbacks.agent_stop_talking();
         }
@@ -108,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
           // Simulate AI response
           setTimeout(() => {
+            console.log('Mock: Agent starts talking again');
             if (window.mockCallbacks && window.mockCallbacks.agent_start_talking) {
               window.mockCallbacks.agent_start_talking();
             }
@@ -123,9 +155,41 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Simulate agent stopping talking after a delay
             setTimeout(() => {
+              console.log('Mock: Agent stops talking again');
               if (window.mockCallbacks && window.mockCallbacks.agent_stop_talking) {
                 window.mockCallbacks.agent_stop_talking();
               }
+              
+              // Add a third response for better demo
+              setTimeout(() => {
+                // Simulate user speaking again
+                saveConversation("User asks another question...", "user");
+                
+                // Simulate final AI response
+                setTimeout(() => {
+                  console.log('Mock: Agent starts talking final time');
+                  if (window.mockCallbacks && window.mockCallbacks.agent_start_talking) {
+                    window.mockCallbacks.agent_start_talking();
+                  }
+                  
+                  // Simulate transcript update
+                  setTimeout(() => {
+                    if (window.mockCallbacks && window.mockCallbacks.update) {
+                      window.mockCallbacks.update({
+                        transcript: "That's a great question! Let me explain in detail. The sound should be playing while I'm talking, and you should see the wave animation as well."
+                      });
+                    }
+                  }, 1000);
+                  
+                  // Simulate agent stopping talking after a longer delay
+                  setTimeout(() => {
+                    console.log('Mock: Agent stops talking final time');
+                    if (window.mockCallbacks && window.mockCallbacks.agent_stop_talking) {
+                      window.mockCallbacks.agent_stop_talking();
+                    }
+                  }, 6000);
+                }, 2000);
+              }, 3000);
             }, 4000);
           }, 2000);
         }, 3000);
@@ -177,8 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateStatus("Listening...");
       
       // Stop the audio when AI stops speaking
-      audioPlayer.pause();
-      audioPlayer.currentTime = 0;
+      stopAISound();
     });
     
     // Update message such as transcript
@@ -272,24 +335,73 @@ document.addEventListener('DOMContentLoaded', () => {
   function playAISound() {
     // Play a sound when AI is speaking
     try {
-      // Use local sound file
-      audioPlayer.src = 'sounds/wave-sound.mp3';
+      console.log('Attempting to play AI sound...');
+      
+      // Make sure the audio source is set
+      if (!audioPlayer.src || !audioPlayer.src.includes('wave-sound.mp3')) {
+        audioPlayer.src = 'sounds/wave-sound.mp3';
+        audioPlayer.load();
+      }
+      
+      // Set audio properties
       audioPlayer.volume = 0.3; // Lower volume
       audioPlayer.loop = true; // Loop the sound while AI is speaking
       
+      // Add a visual indicator that sound should be playing
+      document.body.classList.add('sound-playing');
+      
       // Play the sound and handle any errors
-      audioPlayer.play()
-        .then(() => console.log('Playing AI sound'))
-        .catch(e => {
-          console.error('Could not play sound:', e);
-          // Try to autoplay with user interaction
-          document.addEventListener('click', function audioPlayHandler() {
-            audioPlayer.play();
-            document.removeEventListener('click', audioPlayHandler);
-          }, { once: true });
-        });
+      const playPromise = audioPlayer.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('Successfully playing AI sound');
+            // Show a notification that sound is playing
+            updateStatus('AI is speaking (with sound)', 'info');
+          })
+          .catch(e => {
+            console.error('Could not play sound:', e);
+            // Show a notification that sound failed
+            updateStatus('AI is speaking (sound muted - click anywhere to enable)', 'info');
+            
+            // Try to autoplay with user interaction
+            const enableSound = () => {
+              audioPlayer.play()
+                .then(() => {
+                  console.log('Sound enabled after user interaction');
+                  updateStatus('Sound enabled', 'success');
+                })
+                .catch(err => console.error('Still could not play sound:', err));
+            };
+            
+            document.addEventListener('click', enableSound, { once: true });
+          });
+      }
     } catch (error) {
       console.error('Could not play AI sound:', error);
+      updateStatus('Sound playback error - try refreshing', 'error');
+    }
+  }
+  
+  function stopAISound() {
+    try {
+      console.log('Stopping AI sound...');
+      
+      // Pause the audio
+      if (!audioPlayer.paused) {
+        audioPlayer.pause();
+      }
+      
+      // Reset the audio position
+      audioPlayer.currentTime = 0;
+      
+      // Remove the visual indicator
+      document.body.classList.remove('sound-playing');
+      
+      console.log('AI sound stopped');
+    } catch (error) {
+      console.error('Error stopping AI sound:', error);
     }
   }
   
