@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const { RetellWebClient } = await import('./retell-client.js');
           retellWebClient = new RetellWebClient();
           setupRetellEventListeners();
-          console.log('Retell client initialized successfully');
+          console.log('Retell client initialized successfully with proper SDK import');
         } catch (importError) {
           console.error('Failed to import Retell SDK:', importError);
           throw new Error('Failed to load Retell SDK: ' + importError.message);

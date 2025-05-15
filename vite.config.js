@@ -1,4 +1,7 @@
-export default {
+import { defineConfig } from 'vite';
+import path from 'path';
+
+export default defineConfig({
   root: 'public',
   publicDir: 'public',
   server: {
@@ -22,8 +25,16 @@ export default {
       'X-Frame-Options': 'ALLOWALL'
     }
   },
+  optimizeDeps: {
+    include: ['retell-client-js-sdk'],
+  },
+  resolve: {
+    alias: {
+      'retell-client-js-sdk': path.resolve(__dirname, 'node_modules/retell-client-js-sdk'),
+    },
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
   },
-};
+});

@@ -1,23 +1,21 @@
-// Retell Web Client SDK - Using official Retell SDK
-// Note: We're not using import syntax to avoid CORS issues
-// Instead, we'll load the SDK via a script tag in index.html
+// Retell Web Client SDK - Using official Retell SDK via npm package
+import { RetellWebClient as RetellSDK } from '/node_modules/retell-client-js-sdk/dist/index.js';
 
 // Create a wrapper class that uses the official Retell SDK
 export class RetellWebClient {
   constructor() {
-    // Check if RetellWebClient is available globally
-    if (typeof window.RetellWebClient !== 'function') {
-      console.error("RetellWebClient not found. Make sure the SDK is loaded properly.");
-      throw new Error("RetellWebClient SDK not loaded");
+    try {
+      // Create the official Retell SDK client
+      this.client = new RetellSDK();
+      this.connected = false;
+      this.isAgentTalking = false;
+      
+      // Log initialization
+      console.log("RetellWebClient initialized with official Retell SDK from npm package");
+    } catch (error) {
+      console.error("Error initializing RetellWebClient:", error);
+      throw new Error("Failed to initialize RetellWebClient: " + error.message);
     }
-    
-    // Create the official Retell SDK client
-    this.client = new window.RetellWebClient();
-    this.connected = false;
-    this.isAgentTalking = false;
-    
-    // Log initialization
-    console.log("RetellWebClient initialized with official Retell SDK");
   }
 
   async startCall({ accessToken, captureDeviceId = 'default', playbackDeviceId = 'default', sampleRate = 16000 }) {

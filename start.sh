@@ -2,9 +2,22 @@
 
 # Kill any existing node processes
 pkill -f "node server/index.js" || true
+pkill -f "vite" || true
 
-# Start the server
+# Start the server in the background
+echo "Starting server..."
 node server/index.js > server.log 2>&1 &
+SERVER_PID=$!
 
-echo "Server started on port 12000"
-echo "Access the application at https://work-1-hrxkpfmsgclolbgr.prod-runtime.all-hands.dev"
+# Wait a moment for the server to start
+sleep 2
+
+# Start Vite in development mode
+echo "Starting Vite development server..."
+npx vite --config vite.config.js > vite.log 2>&1 &
+VITE_PID=$!
+
+echo "Server running with PID: $SERVER_PID"
+echo "Vite running with PID: $VITE_PID"
+echo "Application available at: https://work-1-hrxkpfmsgclolbgr.prod-runtime.all-hands.dev"
+echo "Logs: server.log and vite.log"
