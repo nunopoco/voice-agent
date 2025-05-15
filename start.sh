@@ -14,10 +14,10 @@ sleep 2
 
 # Start Vite in development mode
 echo "Starting Vite development server..."
-npx vite --config vite.config.js > vite.log 2>&1 &
+npx vite --config vite.config.js --port 12001 > vite.log 2>&1 &
 VITE_PID=$!
 
 echo "Server running with PID: $SERVER_PID"
 echo "Vite running with PID: $VITE_PID"
-echo "Application available at: https://work-1-hrxkpfmsgclolbgr.prod-runtime.all-hands.dev"
+echo "Application available at: https://work-2-hrxkpfmsgclolbgr.prod-runtime.all-hands.dev"
 echo "Logs: server.log and vite.log"
