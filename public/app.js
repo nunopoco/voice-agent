@@ -104,8 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
     serviceMessage.className = 'service-unavailable';
     serviceMessage.innerHTML = `
       <i class="fas fa-exclamation-triangle"></i>
-      <p>Voice Service Unavailable</p>
-      <p class="service-unavailable-details">${details}</p>
+      <p>Voice service unavailable at the moment.</p>
+      <p class="service-unavailable-details">Please try again later.</p>
     `;
     
     // Add retry button
@@ -128,9 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show the voice button
         voiceButton.classList.remove('hidden');
         
-        // Show file upload button and uploaded files section
-        if (fileUploadButton) {
-          fileUploadButton.classList.remove('hidden');
+        // Show file upload container and uploaded files section
+        const fileUploadContainer = document.querySelector('.file-upload-container');
+        const uploadedFilesSection = document.querySelector('.uploaded-files');
+        
+        if (fileUploadContainer) {
+          fileUploadContainer.classList.remove('hidden');
         }
         
         if (uploadedFilesSection) {
@@ -149,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
       } else {
         // Show unavailable message again
-        showServiceUnavailableMessage('The voice service is still unavailable. Please try again later.');
+        showServiceUnavailableMessage();
       }
     });
     serviceMessage.appendChild(retryButton);
