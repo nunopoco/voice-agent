@@ -237,7 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     retellWebClient.on("error", (error) => {
       console.error("An error occurred:", error);
-      updateStatus("Error: " + (error.message || "Unknown error"), "error");
+      const errorMessage = error.message || (typeof error === 'string' ? error : "Unknown error");
+      updateStatus("Error: " + errorMessage, "error");
       
       // Stop the call
       if (isCallActive && retellWebClient && retellWebClient.stopCall) {

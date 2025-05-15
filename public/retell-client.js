@@ -19,11 +19,13 @@ export class RetellWebClient extends EventEmitter {
       
       // Simulate agent talking after a short delay
       setTimeout(() => {
+        console.log('RetellWebClient: Agent starts talking');
         this.isAgentTalking = true;
         this.emit('agent_start_talking');
         
         // Simulate agent stopping talking after 5 seconds
         setTimeout(() => {
+          console.log('RetellWebClient: Agent stops talking');
           this.isAgentTalking = false;
           this.emit('agent_stop_talking');
           
@@ -31,13 +33,36 @@ export class RetellWebClient extends EventEmitter {
           this.emit('update', {
             transcript: 'Hello, how can I help you today?'
           });
+          
+          // Simulate user response and AI response cycle
+          setTimeout(() => {
+            // User is talking (no event needed)
+            console.log('RetellWebClient: User is talking');
+            
+            // After 3 seconds, AI responds again
+            setTimeout(() => {
+              console.log('RetellWebClient: Agent starts talking again');
+              this.isAgentTalking = true;
+              this.emit('agent_start_talking');
+              
+              // AI stops talking after 4 seconds
+              setTimeout(() => {
+                console.log('RetellWebClient: Agent stops talking again');
+                this.isAgentTalking = false;
+                this.emit('agent_stop_talking');
+                this.emit('update', {
+                  transcript: 'Is there anything else I can help you with?'
+                });
+              }, 4000);
+            }, 3000);
+          }, 2000);
         }, 5000);
       }, 2000);
       
       return true;
     } catch (error) {
       console.error('RetellWebClient: Error starting call', error);
-      this.emit('error', 'Error starting call: ' + error.message);
+      this.emit('error', { message: 'Error starting call: ' + error.message });
       this.stopCall();
       return false;
     }
