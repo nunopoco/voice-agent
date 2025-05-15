@@ -207,23 +207,37 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // When agent starts talking
     retellWebClient.on("agent_start_talking", () => {
-      console.log("Agent started talking");
+      console.log("Agent started talking - showing wave animation");
+      
+      // Make sure wave container is visible
       waveContainer.classList.remove('hidden');
+      document.body.classList.add('ai-speaking');
       updateStatus("AI is speaking...");
       
       // Play sound when AI is speaking
       playAISound();
+      
+      // Debug info
+      console.log("Wave container classes:", waveContainer.className);
+      console.log("Wave container display:", window.getComputedStyle(waveContainer).display);
     });
     
     // When agent stops talking
     retellWebClient.on("agent_stop_talking", () => {
-      console.log("Agent stopped talking");
+      console.log("Agent stopped talking - hiding wave animation");
+      
+      // Hide wave container
       waveContainer.classList.add('hidden');
+      document.body.classList.remove('ai-speaking');
       updateStatus("Listening...");
       
       // Stop the audio when AI stops speaking
       audioPlayer.pause();
       audioPlayer.currentTime = 0;
+      
+      // Debug info
+      console.log("Wave container classes after hiding:", waveContainer.className);
+      console.log("Wave container display after hiding:", window.getComputedStyle(waveContainer).display);
     });
     
     // Update message such as transcript
