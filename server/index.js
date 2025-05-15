@@ -203,10 +203,9 @@ app.get('/api/check-service', async (req, res) => {
       throw new Error('Retell API key not configured');
     }
     
-    // If we have an agent ID, consider the service available
-    if (!process.env.RETELL_AGENT_ID) {
-      throw new Error('Retell Agent ID not configured');
-    }
+    // Note: We're not checking for Agent ID here since it might be provided in the request
+    // when making a call. This allows the application to work even if RETELL_AGENT_ID
+    // is not set in the environment variables.
     
     // If we get here, the service is considered available
     // In a production environment, you might want to make an actual API call to verify
