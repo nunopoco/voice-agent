@@ -11,6 +11,7 @@ A modern web application that allows users to have voice conversations with an A
 - User identification via UUID stored in cookies
 - Responsive design with a black theme
 - Wave animation and sound when AI is speaking
+- Service unavailability handling with retry functionality
 
 ## Tech Stack
 
@@ -76,7 +77,8 @@ npm run build
 - `POST /api/conversations` - Save conversation message
 - `POST /api/upload` - Upload file
 - `GET /api/uploads` - Get uploaded files
-- `POST /api/create-web-call` - Create a new web call with Retell AI
+- `POST /api/call` - Create a new web call with Retell AI
+- `GET /api/check-service` - Check if Retell service is available
 
 ## Retell AI Setup
 
@@ -85,24 +87,17 @@ npm run build
 3. Get your API key and agent ID
 4. Add them to your `.env` file
 
-## Demo Mode
+## Service Unavailability Handling
 
-The application includes a demo mode that simulates voice conversations without requiring a Retell AI account. This is useful for:
+The application includes robust handling for situations when the Retell AI service is unavailable:
 
-- Testing the application without Retell API credentials
-- Demonstrating the UI and functionality
-- Development and debugging
+- Automatically detects when Retell service cannot be reached
+- Displays a user-friendly error message with details
+- Provides a "Try Again" button to retry the connection
+- Gracefully handles API errors and network issues
+- Preserves user experience by allowing continued use of file upload functionality
 
-Demo mode is automatically activated when:
-- Retell API credentials are invalid or missing
-- The Retell account has exceeded its quota
-- The Retell client fails to initialize
-
-In demo mode, the application:
-- Shows a "Demo Mode" badge in the header
-- Simulates AI responses with predefined messages
-- Displays wave animations when the simulated AI is "speaking"
-- Stores conversation history in the database just like in normal mode
+This ensures a smooth user experience even when there are temporary issues with the voice service.
 
 ## License
 
