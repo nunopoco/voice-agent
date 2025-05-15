@@ -198,6 +198,10 @@ app.post('/api/call', async (req, res) => {
 // Check if Retell service is available
 app.get('/api/check-service', async (req, res) => {
   try {
+    console.log('Checking Retell service availability...');
+    console.log('RETELL_API_KEY:', process.env.RETELL_API_KEY ? 'Configured (not showing for security)' : 'Not configured');
+    console.log('RETELL_AGENT_ID:', process.env.RETELL_AGENT_ID || 'Not configured');
+    
     // Simple check - if we have a valid API key, consider the service available
     if (!process.env.RETELL_API_KEY || process.env.RETELL_API_KEY === 'your_retell_api_key') {
       console.log('Retell API key not configured or invalid');
@@ -212,6 +216,7 @@ app.get('/api/check-service', async (req, res) => {
     
     // If we get here, the service is considered available
     // In a production environment, you might want to make an actual API call to verify
+    console.log('Retell service check passed, returning available: true');
     res.json({ available: true });
   } catch (error) {
     console.error('Retell service check failed:', error);

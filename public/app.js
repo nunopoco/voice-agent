@@ -46,18 +46,24 @@ document.addEventListener('DOMContentLoaded', () => {
   
   async function checkRetellServiceAvailability() {
     try {
+      console.log('Checking Retell service availability from client...');
+      
       // Try to ping the Retell service through our server
       const response = await fetch('/api/check-service', { 
         method: 'GET',
         credentials: 'include'
       });
       
+      console.log('Service check response status:', response.status);
+      
       // If the response is not ok, the service is unavailable
       if (!response.ok) {
+        console.log('Service check response not OK');
         return false;
       }
       
       const data = await response.json();
+      console.log('Service check response data:', data);
       return data.available === true;
     } catch (error) {
       console.error('Error checking Retell service:', error);
@@ -67,12 +73,23 @@ document.addEventListener('DOMContentLoaded', () => {
   
   function initRetellClient() {
     try {
+      console.log('Initializing Retell client...');
+      
+      // Check if RetellWebClient is defined
+      if (typeof RetellWebClient === 'undefined') {
+        console.error('RetellWebClient is not defined. SDK might not be loaded correctly.');
+        throw new Error('RetellWebClient is not defined');
+      }
+      
       // Create a new Retell client
       retellWebClient = new RetellWebClient();
+      console.log('Retell client initialized successfully');
+      
+      // Setup event listeners
       setupRetellEventListeners();
     } catch (error) {
       console.error('Error initializing Retell client:', error);
-      showServiceUnavailableMessage();
+      showServiceUnavailableMessage('Error initializing voice service: ' + error.message);
     }
   }
   
