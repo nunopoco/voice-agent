@@ -1,4 +1,4 @@
-# Deploying Your Voice Assistant App with a Custom Domain
+# Deploying Your Voice Assistant App with Retell AI and a Custom Domain
 
 ## 1. Prepare Your Application for Production
 
@@ -13,7 +13,8 @@ This will create optimized production files in the `dist` directory.
 Create a `.env.production` file with your production settings:
 ```
 PORT=80
-VAPI_API_KEY=your_production_vapi_api_key
+RETELL_API_KEY=your_production_retell_api_key
+RETELL_AGENT_ID=your_production_retell_agent_id
 DATABASE_PATH=/path/to/production/database/conversations.db
 UPLOADS_PATH=/path/to/production/uploads
 HOST=0.0.0.0
@@ -45,7 +46,7 @@ HOST=0.0.0.0
    - Create an A record pointing to your server's IP address
    - Or follow your hosting provider's DNS configuration instructions
 
-## 4. Set Up SSL Certificate
+## 4. Set Up SSL Certificate (Required for Retell Web SDK)
 
 ### Option A: Using Let's Encrypt (Free)
 ```bash
@@ -260,3 +261,16 @@ As your application grows:
 3. **Consider horizontal scaling** with a load balancer
 4. **Optimize database queries**
 5. **Consider serverless options** for specific components
+6. **Monitor Retell AI API usage limits** and adjust your plan accordingly
+
+## 12. Retell AI Configuration
+
+1. **Create an account** at [Retell AI](https://www.retellai.com/)
+2. **Create an agent** in the Retell dashboard
+3. **Configure your agent**:
+   - Set up the voice and language model
+   - Configure webhooks if needed
+   - Set up any custom behavior
+4. **Get your API key and agent ID** from the dashboard
+5. **Test your agent** before deploying to production
+6. **Monitor usage** to avoid unexpected charges
