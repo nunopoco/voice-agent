@@ -81,6 +81,18 @@ document.addEventListener('DOMContentLoaded', () => {
     voiceButton.classList.add('hidden');
     voiceStatus.classList.add('hidden');
     
+    // Hide file upload container and uploaded files section
+    const fileUploadContainer = document.querySelector('.file-upload-container');
+    const uploadedFilesSection = document.querySelector('.uploaded-files');
+    
+    if (fileUploadContainer) {
+      fileUploadContainer.classList.add('hidden');
+    }
+    
+    if (uploadedFilesSection) {
+      uploadedFilesSection.classList.add('hidden');
+    }
+    
     // Remove any existing service unavailable message
     const existingMessage = document.querySelector('.service-unavailable');
     if (existingMessage) {
@@ -115,6 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isAvailable) {
         // Show the voice button
         voiceButton.classList.remove('hidden');
+        
+        // Show file upload button and uploaded files section
+        if (fileUploadButton) {
+          fileUploadButton.classList.remove('hidden');
+        }
+        
+        if (uploadedFilesSection) {
+          uploadedFilesSection.classList.remove('hidden');
+        }
         
         // Initialize Retell client
         initRetellClient();
