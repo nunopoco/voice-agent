@@ -165,16 +165,55 @@ app.post('/api/call', async (req, res) => {
       return res.status(400).json({ error: 'Agent ID is required' });
     }
     
-    // Create a web call using Retell SDK
-    const webCallResponse = await retellClient.call.createWebCall({ 
-      agent_id: agentId,
-      metadata: { userId }
+    try {
+      // Create a web call using Retell SDK
+      const webCallResponse = await retellClient.call.createWebCall({ 
+        agent_id: agentId,
+        metadata: { userId }
+      });
+      
+      res.status(201).json({ callId: webCallResponse.call_id });
+    } catch (retellError) {
+      console.error('Retell service error:', retellError);
+      
+      // Check if it's a service unavailability error
+      if (retellError.response && retellError.response.status === 503) {
+        return res.status(503).json({ error: 'Retell service unavailable', details: 'The voice service is currently unavailable. Please try again later.' });
+      }
+      
+      // Check for network errors or timeouts
+      if (retellError.code === 'ECONNREFUSED' || retellError.code === 'ETIMEDOUT' || retellError.code === 'ENOTFOUND') {
+        return res.status(503).json({ error: 'Retell service unavailable', details: 'Cannot connect to the voice service. Please try again later.' });
+      }
+      
+      // For other errors
+      res.status(500).json({ error: 'Failed to create web call', details: retellError.message });
+    }
+  } catch (error) {
+    console.error('Error in call endpoint:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
+// Check if Retell service is available
+app.get('/api/check-service', async (req, res) => {
+  try {
+    // Try to ping Retell API
+    const response = await retellClient.agent.listAgents({
+      limit: 1 // Just request minimal data to check connectivity
     });
     
-    res.status(201).json({ callId: webCallResponse.call_id });
+    // If we get here, the service is available
+    res.json({ available: true });
   } catch (error) {
-    console.error('Error creating web call:', error);
-    res.status(500).json({ error: 'Failed to create web call', details: error.message });
+    console.error('Retell service check failed:', error);
+    
+    // Return service unavailable
+    res.status(503).json({ 
+      available: false, 
+      error: 'Retell service unavailable',
+      details: 'The voice service is currently unavailable. Please try again later.'
+    });
   }
 });
 

@@ -22,8 +22,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       userId = data.userId;
       
-      // Initialize Retell Web Client
-      initRetellClient();
+      // Check if Retell service is available
+      const isServiceAvailable = await checkRetellServiceAvailability();
+      
+      if (isServiceAvailable) {
+        // Initialize Retell Web Client
+        initRetellClient();
+      } else {
+        // Show service unavailable message
+        showServiceUnavailableMessage();
+      }
       
       // Load uploaded files
       loadUploadedFiles();
@@ -36,6 +44,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
+  async function checkRetellServiceAvailability() {
+    try {
+      // Try to ping the Retell service through our server
+      const response = await fetch('/api/check-service', { 
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      // If the response is not ok, the service is unavailable
+      if (!response.ok) {
+        return false;
+      }
+      
+      const data = await response.json();
+      return data.available === true;
+    } catch (error) {
+      console.error('Error checking Retell service:', error);
+      return false;
+    }
+  }
+  
   function initRetellClient() {
     try {
       // Create a new Retell client
@@ -43,8 +72,28 @@ document.addEventListener('DOMContentLoaded', () => {
       setupRetellEventListeners();
     } catch (error) {
       console.error('Error initializing Retell client:', error);
-      updateStatus('Client initialization failed.', 'error');
+      showServiceUnavailableMessage();
     }
+  }
+  
+  function showServiceUnavailableMessage() {
+    // Hide the voice button
+    voiceButton.classList.add('hidden');
+    
+    // Create and show service unavailable message
+    const serviceMessage = document.createElement('div');
+    serviceMessage.className = 'service-unavailable';
+    serviceMessage.innerHTML = `
+      <i class="fas fa-exclamation-triangle"></i>
+      <p>Voice service unavailable at the moment.</p>
+      <p class="service-unavailable-details">Please try again later.</p>
+    `;
+    
+    // Insert the message in place of the button
+    voiceButton.parentNode.insertBefore(serviceMessage, voiceButton);
+    
+    // Update status
+    updateStatus('Voice service unavailable', 'error');
   }
   
   function setupRetellEventListeners() {
@@ -164,6 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       
       if (!response.ok) {
+        // Check if it's a service unavailable error
+        if (response.status === 503) {
+          showServiceUnavailableMessage();
+          return;
+        }
         throw new Error('Failed to get call token');
       }
       
@@ -193,7 +247,18 @@ document.addEventListener('DOMContentLoaded', () => {
       
     } catch (error) {
       console.error('Error starting call:', error);
-      updateStatus('Failed to start call: ' + error.message, 'error');
+      
+      // Check if the error is related to service unavailability
+      if (error.message && (
+          error.message.includes('service unavailable') || 
+          error.message.includes('network') ||
+          error.message.includes('timeout') ||
+          error.message.includes('failed to fetch')
+        )) {
+        showServiceUnavailableMessage();
+      } else {
+        updateStatus('Failed to start call: ' + error.message, 'error');
+      }
     }
   }
   
