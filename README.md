@@ -85,6 +85,25 @@ npm run build
 3. Get your API key and agent ID
 4. Add them to your `.env` file
 
+## Demo Mode
+
+The application includes a demo mode that simulates voice conversations without requiring a Retell AI account. This is useful for:
+
+- Testing the application without Retell API credentials
+- Demonstrating the UI and functionality
+- Development and debugging
+
+Demo mode is automatically activated when:
+- Retell API credentials are invalid or missing
+- The Retell account has exceeded its quota
+- The Retell client fails to initialize
+
+In demo mode, the application:
+- Shows a "Demo Mode" badge in the header
+- Simulates AI responses with predefined messages
+- Displays wave animations when the simulated AI is "speaking"
+- Stores conversation history in the database just like in normal mode
+
 ## License
 
 ISC

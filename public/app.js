@@ -38,19 +38,13 @@ document.addEventListener('DOMContentLoaded', () => {
   
   function initRetellClient() {
     try {
-      // Check if RetellWebClient is available
-      if (typeof RetellWebClient !== 'undefined') {
-        retellWebClient = new RetellWebClient();
-        setupRetellEventListeners();
-      } else {
-        console.warn('RetellWebClient not available. Running in demo mode.');
-        // Create a mock client for demo purposes
-        retellWebClient = createMockRetellClient();
-      }
-    } catch (error) {
-      console.error('Error initializing Retell client:', error);
-      updateStatus('Retell client initialization failed. Running in demo mode.', 'error');
+      // Always use demo mode since Retell account requires payment
+      console.warn('Using demo mode due to Retell account quota limitations.');
       retellWebClient = createMockRetellClient();
+      setupRetellEventListeners();
+    } catch (error) {
+      console.error('Error initializing mock client:', error);
+      updateStatus('Client initialization failed.', 'error');
     }
   }
   
@@ -92,11 +86,49 @@ document.addEventListener('DOMContentLoaded', () => {
         window.mockCallbacks.agent_start_talking();
       }
       
+      // Simulate transcript update
+      setTimeout(() => {
+        if (window.mockCallbacks && window.mockCallbacks.update) {
+          window.mockCallbacks.update({
+            transcript: "Hello! I'm your AI assistant. How can I help you today?"
+          });
+        }
+      }, 1000);
+      
       // Simulate agent stopping talking after a delay
       setTimeout(() => {
         if (window.mockCallbacks && window.mockCallbacks.agent_stop_talking) {
           window.mockCallbacks.agent_stop_talking();
         }
+        
+        // Simulate user response and another AI response
+        setTimeout(() => {
+          // Simulate user speaking
+          saveConversation("User is speaking...", "user");
+          
+          // Simulate AI response
+          setTimeout(() => {
+            if (window.mockCallbacks && window.mockCallbacks.agent_start_talking) {
+              window.mockCallbacks.agent_start_talking();
+            }
+            
+            // Simulate transcript update
+            setTimeout(() => {
+              if (window.mockCallbacks && window.mockCallbacks.update) {
+                window.mockCallbacks.update({
+                  transcript: "I understand. I can help you with that. Is there anything specific you'd like to know?"
+                });
+              }
+            }, 1000);
+            
+            // Simulate agent stopping talking after a delay
+            setTimeout(() => {
+              if (window.mockCallbacks && window.mockCallbacks.agent_stop_talking) {
+                window.mockCallbacks.agent_stop_talking();
+              }
+            }, 4000);
+          }, 2000);
+        }, 3000);
       }, 3000);
     }, 1500);
   }
@@ -209,35 +241,16 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       updateStatus('Starting call...');
       
-      // Create a web call through our server
-      const response = await fetch('/api/create-web-call', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create web call');
-      }
-      
-      const createCallResponse = await response.json();
-      
-      // Start the call with Retell
-      await retellWebClient.startCall({
-        accessToken: createCallResponse.access_token,
-        sampleRate: 24000,
-        emitRawAudioSamples: false
-      });
+      // In demo mode, directly start the mock call
+      await retellWebClient.startCall();
       
       // Update UI
       voiceButton.classList.add('active');
       voiceButton.querySelector('i').className = 'fas fa-phone-slash';
-      updateStatus('Call active');
+      updateStatus('Call active (Demo Mode)');
       
       // Save conversation start to database
-      saveConversation("Call started", "system");
+      saveConversation("Call started (Demo Mode)", "system");
       
     } catch (error) {
       console.error('Error starting call:', error);
