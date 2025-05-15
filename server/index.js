@@ -151,7 +151,7 @@ app.get('/api/uploads', async (req, res) => {
 });
 
 // Create a web call with Retell
-app.post('/api/create-web-call', async (req, res) => {
+app.post('/api/call', async (req, res) => {
   try {
     const userId = req.cookies.userId;
     if (!userId) {
@@ -171,7 +171,7 @@ app.post('/api/create-web-call', async (req, res) => {
       metadata: { userId }
     });
     
-    res.status(201).json(webCallResponse);
+    res.status(201).json({ callId: webCallResponse.call_id });
   } catch (error) {
     console.error('Error creating web call:', error);
     res.status(500).json({ error: 'Failed to create web call', details: error.message });
