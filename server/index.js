@@ -166,15 +166,25 @@ app.post('/api/call', async (req, res) => {
     }
     
     try {
+      console.log('Creating web call with agent ID');
+      
       // Create a web call using Retell SDK
       const webCallResponse = await retellClient.call.createWebCall({ 
         agent_id: agentId,
         metadata: { userId }
       });
       
-      res.status(201).json({ callId: webCallResponse.call_id });
+      if (!webCallResponse || !webCallResponse.access_token) {
+        throw new Error('Invalid response from Retell API');
+      }
+      
+      // Return the access token to the client
+      res.status(201).json({ 
+        accessToken: webCallResponse.access_token,
+        callId: webCallResponse.call_id 
+      });
     } catch (retellError) {
-      console.error('Retell service error:', retellError);
+      console.error('Retell service error');
       
       // Check if it's a service unavailability error
       if (retellError.response && retellError.response.status === 503) {
@@ -187,11 +197,11 @@ app.post('/api/call', async (req, res) => {
       }
       
       // For other errors
-      res.status(500).json({ error: 'Failed to create web call', details: retellError.message });
+      res.status(500).json({ error: 'Failed to create web call', details: retellError.message || 'Unknown error' });
     }
   } catch (error) {
-    console.error('Error in call endpoint:', error);
-    res.status(500).json({ error: 'Internal server error', details: error.message });
+    console.error('Error in call endpoint');
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -199,15 +209,16 @@ app.post('/api/call', async (req, res) => {
 app.get('/api/check-service', async (req, res) => {
   try {
     console.log('Checking Retell service availability...');
-    console.log('RETELL_API_KEY:', process.env.RETELL_API_KEY ? 'Configured (not showing for security)' : 'Not configured');
-    console.log('RETELL_AGENT_ID:', process.env.RETELL_AGENT_ID || 'Not configured');
     
     // Simple check - if we have a valid API key, consider the service available
     if (!process.env.RETELL_API_KEY || process.env.RETELL_API_KEY === 'your_retell_api_key') {
-      console.log('Retell API key not configured or invalid');
-      // For demo purposes, we'll consider the service available even without a valid API key
-      // This allows the UI to function in demo mode
-      return res.json({ available: true });
+      console.log('Retell API key not properly configured');
+      // Return service unavailable
+      return res.status(503).json({ 
+        available: false, 
+        error: 'Retell service unavailable',
+        details: 'The voice service is currently unavailable. Please try again later.'
+      });
     }
     
     // Note: We're not checking for Agent ID here since it might be provided in the request
@@ -216,10 +227,10 @@ app.get('/api/check-service', async (req, res) => {
     
     // If we get here, the service is considered available
     // In a production environment, you might want to make an actual API call to verify
-    console.log('Retell service check passed, returning available: true');
+    console.log('Retell service check passed');
     res.json({ available: true });
   } catch (error) {
-    console.error('Retell service check failed:', error);
+    console.error('Retell service check failed');
     
     // Return service unavailable
     res.status(503).json({ 

@@ -75,21 +75,15 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       console.log('Initializing Retell client...');
       
-      // Check if RetellWebClient is defined
-      if (typeof RetellWebClient === 'undefined') {
-        console.error('RetellWebClient is not defined. SDK might not be loaded correctly.');
-        throw new Error('RetellWebClient is not defined');
-      }
+      // We'll use the server-side Retell SDK instead of client-side
+      // The actual client will be created when the user starts a call
+      console.log('Retell client will be initialized when starting a call');
       
-      // Create a new Retell client
-      retellWebClient = new RetellWebClient();
-      console.log('Retell client initialized successfully');
-      
-      // Setup event listeners
-      setupRetellEventListeners();
+      // Setup voice button event listeners
+      setupVoiceButtonListeners();
     } catch (error) {
       console.error('Error initializing Retell client:', error);
-      showServiceUnavailableMessage('Error initializing voice service: ' + error.message);
+      showServiceUnavailableMessage('Error initializing voice service');
     }
   }
   
@@ -178,7 +172,19 @@ document.addEventListener('DOMContentLoaded', () => {
     voiceButton.parentNode.insertBefore(serviceMessage, voiceButton);
   }
   
+  function setupVoiceButtonListeners() {
+    // Voice button click event is already set up in setupEventListeners
+    console.log("Voice button listeners set up");
+  }
+  
   function setupRetellEventListeners() {
+    if (!retellWebClient) {
+      console.error("Cannot set up event listeners: retellWebClient is null");
+      return;
+    }
+    
+    console.log("Setting up Retell event listeners");
+    
     retellWebClient.on("call_started", () => {
       console.log("Call started");
       isCallActive = true;
@@ -231,10 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     retellWebClient.on("error", (error) => {
       console.error("An error occurred:", error);
-      updateStatus("Error: " + error.message, "error");
+      updateStatus("Error: " + (error.message || "Unknown error"), "error");
       
       // Stop the call
-      if (isCallActive) {
+      if (isCallActive && retellWebClient && retellWebClient.stopCall) {
         retellWebClient.stopCall();
       }
     });
@@ -303,21 +309,36 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error('Failed to get call token');
       }
       
-      const { callId } = await response.json();
+      const data = await response.json();
+      console.log('Call data received:', data);
+      
+      if (!data.accessToken) {
+        throw new Error('No access token received from server');
+      }
+      
+      // Initialize Retell client if not already initialized
+      if (!retellWebClient) {
+        console.log('Creating new Retell client for call');
+        
+        // Import the Retell SDK dynamically
+        try {
+          const { RetellWebClient } = await import('/retell-client.js');
+          retellWebClient = new RetellWebClient();
+          setupRetellEventListeners();
+        } catch (importError) {
+          console.error('Failed to import Retell SDK:', importError);
+          throw new Error('Failed to load Retell SDK: ' + importError.message);
+        }
+      }
       
       // Start the call with Retell
-      const success = await retellWebClient.startCall({
-        callId: callId,
+      console.log('Starting call with access token');
+      await retellWebClient.startCall({
+        accessToken: data.accessToken,
         // Optional parameters for customization
-        audio: {
-          microphoneDeviceId: 'default',
-          speakerDeviceId: 'default',
-        }
+        captureDeviceId: 'default',
+        playbackDeviceId: 'default',
       });
-      
-      if (!success) {
-        throw new Error('Failed to start call');
-      }
       
       // Update UI
       voiceButton.classList.add('active');
@@ -335,9 +356,10 @@ document.addEventListener('DOMContentLoaded', () => {
           error.message.includes('service unavailable') || 
           error.message.includes('network') ||
           error.message.includes('timeout') ||
-          error.message.includes('failed to fetch')
+          error.message.includes('failed to fetch') ||
+          error.message.includes('Failed to load Retell SDK')
         )) {
-        showServiceUnavailableMessage();
+        showServiceUnavailableMessage('Service unavailable: ' + error.message);
       } else {
         updateStatus('Failed to start call: ' + error.message, 'error');
       }
