@@ -343,9 +343,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Import the Retell SDK dynamically
         try {
-          const { RetellWebClient } = await import('/retell-client.js');
+          // Import the RetellWebClient from our wrapper module
+          const { RetellWebClient } = await import('./retell-client.js');
           retellWebClient = new RetellWebClient();
           setupRetellEventListeners();
+          console.log('Retell client initialized successfully');
         } catch (importError) {
           console.error('Failed to import Retell SDK:', importError);
           throw new Error('Failed to load Retell SDK: ' + importError.message);
@@ -395,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function playAISound() {
-    // Play a sound once when AI starts speaking
+    // Play a short beep sound once when AI starts speaking as a notification
     try {
       // Use local sound file
       audioPlayer.src = 'sounds/wave-sound.mp3';
@@ -413,6 +415,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.removeEventListener('click', audioPlayHandler);
           }, { once: true });
         });
+        
+      // The actual AI voice will be streamed by the Retell SDK
+      console.log('Retell SDK will handle the actual voice streaming');
     } catch (error) {
       console.error('Could not play AI notification sound:', error);
     }
