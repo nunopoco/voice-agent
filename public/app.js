@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+  console.log("DOM fully loaded");
+  
   // DOM Elements
   const voiceButton = document.getElementById('voice-button');
   const voiceStatus = document.querySelector('.voice-status');
@@ -6,6 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const fileInput = document.getElementById('file-input');
   const fileList = document.getElementById('file-list');
   const audioPlayer = document.getElementById('audio-player');
+  
+  // Log DOM elements
+  console.log("Voice button:", voiceButton);
+  console.log("Wave container:", waveContainer);
   
   // State variables
   let userId = null;
@@ -389,18 +395,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function playAISound() {
-    // Play a sound when AI is speaking
+    // Play a sound once when AI starts speaking
     try {
       // Use local sound file
       audioPlayer.src = 'sounds/wave-sound.mp3';
       audioPlayer.volume = 0.3; // Lower volume
-      audioPlayer.loop = true; // Loop the sound while AI is speaking
+      audioPlayer.loop = false; // Don't loop the sound - just play once as notification
       
       // Play the sound and handle any errors
       audioPlayer.play()
-        .then(() => console.log('Playing AI sound'))
+        .then(() => console.log('Playing AI notification sound (once)'))
         .catch(e => {
-          console.error('Could not play sound:', e);
+          console.error('Could not play notification sound:', e);
           // Try to autoplay with user interaction
           document.addEventListener('click', function audioPlayHandler() {
             audioPlayer.play();
@@ -408,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }, { once: true });
         });
     } catch (error) {
-      console.error('Could not play AI sound:', error);
+      console.error('Could not play AI notification sound:', error);
     }
   }
   

@@ -7,6 +7,9 @@ export class RetellWebClient extends EventEmitter {
     this.room = undefined;
     this.connected = false;
     this.isAgentTalking = false;
+    
+    // Log initialization
+    console.log("RetellWebClient initialized");
   }
 
   async startCall({ accessToken, captureDeviceId = 'default', playbackDeviceId = 'default', sampleRate = 16000 }) {
