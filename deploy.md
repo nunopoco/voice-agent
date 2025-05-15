@@ -274,3 +274,32 @@ As your application grows:
 4. **Get your API key and agent ID** from the dashboard
 5. **Test your agent** before deploying to production
 6. **Monitor usage** to avoid unexpected charges
+
+## 13. Service Unavailability Handling
+
+The application includes built-in handling for Retell service unavailability. To ensure this works properly in production:
+
+1. **Verify error handling** by temporarily disabling your Retell API key to test the service unavailability message
+2. **Configure monitoring alerts** to notify you when the Retell service is unavailable
+3. **Consider implementing a fallback service** for critical deployments
+4. **Customize the error messages** in `public/app.js` if needed for your specific use case
+5. **Set up logging** to track service unavailability incidents:
+   ```javascript
+   // Add to server/index.js
+   app.get('/api/check-service', async (req, res) => {
+     try {
+       // Existing code...
+     } catch (error) {
+       // Add logging
+       console.error(`[${new Date().toISOString()}] Retell service unavailable: ${error.message}`);
+       
+       // Consider sending an alert to your monitoring system
+       if (process.env.NODE_ENV === 'production') {
+         sendAlertToMonitoringSystem('Retell service unavailable', error);
+       }
+       
+       // Existing error response...
+     }
+   });
+   ```
+6. **Implement a status page** for users to check service status
