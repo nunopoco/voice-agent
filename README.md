@@ -1,11 +1,11 @@
 # AI Voice Assistant
 
-A modern web application that allows users to have voice conversations with an AI using VAPI. The application features a prominent voice button and supports file uploads for context-aware conversations.
+A modern web application that allows users to have voice conversations with an AI using Retell AI. The application features a prominent voice button and supports file uploads for context-aware conversations.
 
 ## Features
 
 - Sleek, modern UI with a prominent voice button
-- Voice conversations with AI using VAPI
+- Voice conversations with AI using Retell AI's Web Call SDK
 - File upload for context-aware conversations
 - Conversation history stored in a database
 - User identification via UUID stored in cookies
@@ -17,7 +17,7 @@ A modern web application that allows users to have voice conversations with an A
 - **Frontend**: HTML, CSS, JavaScript
 - **Backend**: Node.js, Express
 - **Database**: SQLite
-- **Voice API**: VAPI
+- **Voice API**: Retell AI
 - **File Processing**: Multer
 - **Development**: Vite
 
@@ -31,7 +31,8 @@ A modern web application that allows users to have voice conversations with an A
 3. Create a `.env` file with the following variables:
    ```
    PORT=12000
-   VAPI_API_KEY=your_vapi_api_key
+   RETELL_API_KEY=your_retell_api_key
+   RETELL_AGENT_ID=your_retell_agent_id
    DATABASE_PATH=./server/database/conversations.db
    UPLOADS_PATH=./server/uploads
    ```
@@ -75,6 +76,14 @@ npm run build
 - `POST /api/conversations` - Save conversation message
 - `POST /api/upload` - Upload file
 - `GET /api/uploads` - Get uploaded files
+- `POST /api/create-web-call` - Create a new web call with Retell AI
+
+## Retell AI Setup
+
+1. Create an account at [Retell AI](https://www.retellai.com/)
+2. Create an agent in the Retell dashboard
+3. Get your API key and agent ID
+4. Add them to your `.env` file
 
 ## License
 

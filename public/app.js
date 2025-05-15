@@ -9,11 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // State variables
   let userId = null;
-  let isRecording = false;
-  let isProcessing = false;
-  let vapiClient = null;
-  let mediaRecorder = null;
-  let audioChunks = [];
+  let isCallActive = false;
+  let retellWebClient = null;
   
   // Initialize the app
   init();
@@ -25,8 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       userId = data.userId;
       
-      // Initialize VAPI client
-      initVapiClient();
+      // Initialize Retell Web Client
+      initRetellClient();
       
       // Load uploaded files
       loadUploadedFiles();
@@ -39,46 +36,141 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  function initVapiClient() {
+  function initRetellClient() {
     try {
-      // Check if VapiClient is available
-      if (typeof VapiClient !== 'undefined') {
-        // Initialize VAPI client (replace with your actual API key)
-        vapiClient = new VapiClient({
-          apiKey: 'your_vapi_api_key' // In a production app, this would be fetched from the server
-        });
+      // Check if RetellWebClient is available
+      if (typeof RetellWebClient !== 'undefined') {
+        retellWebClient = new RetellWebClient();
+        setupRetellEventListeners();
       } else {
-        console.warn('VapiClient not available. Running in demo mode.');
+        console.warn('RetellWebClient not available. Running in demo mode.');
         // Create a mock client for demo purposes
-        vapiClient = {
-          chat: async (options) => {
-            // Simulate processing delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            return {
-              text: "This is a demo response. VAPI client is not available in this environment.",
-              audio: null
-            };
-          }
-        };
+        retellWebClient = createMockRetellClient();
       }
     } catch (error) {
-      console.error('Error initializing VAPI client:', error);
-      updateStatus('VAPI client initialization failed. Running in demo mode.', 'error');
+      console.error('Error initializing Retell client:', error);
+      updateStatus('Retell client initialization failed. Running in demo mode.', 'error');
+      retellWebClient = createMockRetellClient();
     }
+  }
+  
+  function createMockRetellClient() {
+    // Create a mock client for demo purposes
+    return {
+      startCall: async () => {
+        console.log('Mock: Starting call');
+        setTimeout(() => {
+          mockCallStarted();
+        }, 1000);
+        return true;
+      },
+      stopCall: () => {
+        console.log('Mock: Stopping call');
+        setTimeout(() => {
+          mockCallEnded();
+        }, 500);
+      },
+      on: (event, callback) => {
+        console.log(`Mock: Registered event listener for ${event}`);
+        // Store callbacks for mock events
+        if (!window.mockCallbacks) {
+          window.mockCallbacks = {};
+        }
+        window.mockCallbacks[event] = callback;
+      }
+    };
+  }
+  
+  function mockCallStarted() {
+    if (window.mockCallbacks && window.mockCallbacks.call_started) {
+      window.mockCallbacks.call_started();
+    }
+    
+    // Simulate agent talking after a delay
+    setTimeout(() => {
+      if (window.mockCallbacks && window.mockCallbacks.agent_start_talking) {
+        window.mockCallbacks.agent_start_talking();
+      }
+      
+      // Simulate agent stopping talking after a delay
+      setTimeout(() => {
+        if (window.mockCallbacks && window.mockCallbacks.agent_stop_talking) {
+          window.mockCallbacks.agent_stop_talking();
+        }
+      }, 3000);
+    }, 1500);
+  }
+  
+  function mockCallEnded() {
+    if (window.mockCallbacks && window.mockCallbacks.call_ended) {
+      window.mockCallbacks.call_ended();
+    }
+  }
+  
+  function setupRetellEventListeners() {
+    retellWebClient.on("call_started", () => {
+      console.log("Call started");
+      isCallActive = true;
+      updateStatus("Call started");
+    });
+    
+    retellWebClient.on("call_ended", () => {
+      console.log("Call ended");
+      isCallActive = false;
+      waveContainer.classList.add('hidden');
+      updateStatus("Call ended");
+      
+      // Reset button state
+      voiceButton.classList.remove('active');
+      voiceButton.querySelector('i').className = 'fas fa-microphone';
+      
+      // Save conversation end to database
+      saveConversation("Call ended", "system");
+    });
+    
+    // When agent starts talking
+    retellWebClient.on("agent_start_talking", () => {
+      console.log("Agent started talking");
+      waveContainer.classList.remove('hidden');
+      updateStatus("AI is speaking...");
+      
+      // Play sound when AI is speaking (optional)
+      playAISound();
+    });
+    
+    // When agent stops talking
+    retellWebClient.on("agent_stop_talking", () => {
+      console.log("Agent stopped talking");
+      waveContainer.classList.add('hidden');
+      updateStatus("Listening...");
+    });
+    
+    // Update message such as transcript
+    retellWebClient.on("update", (update) => {
+      console.log("Update received:", update);
+      if (update.transcript) {
+        // Save transcript to database
+        saveConversation(update.transcript, "transcript");
+      }
+    });
+    
+    retellWebClient.on("error", (error) => {
+      console.error("An error occurred:", error);
+      updateStatus("Error: " + error.message, "error");
+      
+      // Stop the call
+      if (isCallActive) {
+        retellWebClient.stopCall();
+      }
+    });
   }
   
   function setupEventListeners() {
     // Voice button click event
-    voiceButton.addEventListener('click', toggleRecording);
+    voiceButton.addEventListener('click', toggleCall);
     
     // File input change event
     fileInput.addEventListener('change', handleFileUpload);
-    
-    // Audio player ended event
-    audioPlayer.addEventListener('ended', () => {
-      waveContainer.classList.add('hidden');
-      updateStatus('Tap to speak');
-    });
   }
   
   async function loadUploadedFiles() {
@@ -105,127 +197,71 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  async function toggleRecording() {
-    if (isProcessing) return; // Prevent actions while processing
-    
-    if (isRecording) {
-      stopRecording();
+  async function toggleCall() {
+    if (isCallActive) {
+      stopCall();
     } else {
-      startRecording();
+      startCall();
     }
   }
   
-  async function startRecording() {
+  async function startCall() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      updateStatus('Starting call...');
       
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-      
-      mediaRecorder.addEventListener('dataavailable', event => {
-        audioChunks.push(event.data);
+      // Create a web call through our server
+      const response = await fetch('/api/create-web-call', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
       });
       
-      mediaRecorder.addEventListener('stop', async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        await processAudio(audioBlob);
-        
-        // Stop all tracks to release the microphone
-        stream.getTracks().forEach(track => track.stop());
-      });
+      if (!response.ok) {
+        throw new Error('Failed to create web call');
+      }
       
-      // Start recording
-      mediaRecorder.start();
-      isRecording = true;
+      const createCallResponse = await response.json();
+      
+      // Start the call with Retell
+      await retellWebClient.startCall({
+        accessToken: createCallResponse.access_token,
+        sampleRate: 24000,
+        emitRawAudioSamples: false
+      });
       
       // Update UI
       voiceButton.classList.add('active');
-      voiceButton.querySelector('i').className = 'fas fa-stop';
-      updateStatus('Listening...');
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      updateStatus('Microphone access denied', 'error');
-    }
-  }
-  
-  function stopRecording() {
-    if (mediaRecorder && isRecording) {
-      mediaRecorder.stop();
-      isRecording = false;
-      isProcessing = true;
+      voiceButton.querySelector('i').className = 'fas fa-phone-slash';
+      updateStatus('Call active');
       
-      // Update UI
-      voiceButton.classList.remove('active');
-      voiceButton.querySelector('i').className = 'fas fa-microphone';
-      updateStatus('Processing...');
+      // Save conversation start to database
+      saveConversation("Call started", "system");
+      
+    } catch (error) {
+      console.error('Error starting call:', error);
+      updateStatus('Failed to start call: ' + error.message, 'error');
     }
   }
   
-  async function processAudio(audioBlob) {
+  function stopCall() {
+    if (retellWebClient && isCallActive) {
+      retellWebClient.stopCall();
+      updateStatus('Ending call...');
+    }
+  }
+  
+  function playAISound() {
+    // Play a sound when AI is speaking (optional)
+    // This could be a subtle notification sound
     try {
-      // Save user message to database (we don't know the content, but we can mark that audio was sent)
-      const userMessage = 'Audio message sent';
-      await saveConversation(userMessage, 'user');
-      
-      // Process audio with VAPI
-      const response = await vapiClient.chat({
-        audio: audioBlob,
-        // Additional options like model, etc. would go here
-      });
-      
-      // Get AI response
-      const aiMessage = response.text;
-      
-      // Save AI message to database
-      await saveConversation(aiMessage, 'ai');
-      
-      // Play audio response
-      if (response.audio) {
-        playAudioResponse(response.audio);
-      } else {
-        // If no audio response, simulate the wave animation for a few seconds
-        waveContainer.classList.remove('hidden');
-        updateStatus('AI is responding...');
-        
-        // Display the text response after a delay
-        setTimeout(() => {
-          waveContainer.classList.add('hidden');
-          isProcessing = false;
-          updateStatus(aiMessage.length > 50 ? aiMessage.substring(0, 47) + '...' : aiMessage, 'success');
-          
-          // Reset status after a delay
-          setTimeout(() => {
-            updateStatus('Tap to speak');
-          }, 5000);
-        }, 2000);
-      }
+      audioPlayer.src = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+      audioPlayer.volume = 0.3; // Lower volume
+      audioPlayer.play().catch(e => console.log('Could not play sound:', e));
     } catch (error) {
-      console.error('Error processing audio:', error);
-      isProcessing = false;
-      updateStatus('Failed to process audio', 'error');
+      console.log('Could not play AI sound:', error);
     }
-  }
-  
-  function playAudioResponse(audioUrl) {
-    // Show wave animation
-    waveContainer.classList.remove('hidden');
-    updateStatus('AI is speaking...');
-    
-    // Play audio
-    audioPlayer.src = audioUrl;
-    audioPlayer.play().catch(error => {
-      console.error('Error playing audio:', error);
-      waveContainer.classList.add('hidden');
-      isProcessing = false;
-      updateStatus('Failed to play audio', 'error');
-    });
-    
-    // When audio ends
-    audioPlayer.onended = () => {
-      waveContainer.classList.add('hidden');
-      isProcessing = false;
-      updateStatus('Tap to speak');
-    };
   }
   
   async function handleFileUpload(event) {
@@ -265,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Reset status after a delay
       setTimeout(() => {
-        updateStatus('Tap to speak');
+        updateStatus(isCallActive ? 'Call active' : 'Tap to start call');
       }, 3000);
     } catch (error) {
       console.error('Error uploading file:', error);

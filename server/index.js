@@ -6,10 +6,16 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const markdownIt = require('markdown-it')();
+const Retell = require('retell-sdk');
 require('dotenv').config();
 
 const { initializeDatabase } = require('./database/init');
 const dbService = require('./database/service');
+
+// Initialize Retell client
+const retellClient = new Retell({
+  apiKey: process.env.RETELL_API_KEY || 'your_retell_api_key',
+});
 
 // Initialize database
 const db = initializeDatabase();
@@ -141,6 +147,34 @@ app.get('/api/uploads', async (req, res) => {
   } catch (error) {
     console.error('Error fetching uploaded files:', error);
     res.status(500).json({ error: 'Failed to fetch uploaded files' });
+  }
+});
+
+// Create a web call with Retell
+app.post('/api/create-web-call', async (req, res) => {
+  try {
+    const userId = req.cookies.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    // Get the agent ID from environment variables or request body
+    const agentId = process.env.RETELL_AGENT_ID || req.body.agentId;
+    
+    if (!agentId) {
+      return res.status(400).json({ error: 'Agent ID is required' });
+    }
+    
+    // Create a web call using Retell SDK
+    const webCallResponse = await retellClient.call.createWebCall({ 
+      agent_id: agentId,
+      metadata: { userId }
+    });
+    
+    res.status(201).json(webCallResponse);
+  } catch (error) {
+    console.error('Error creating web call:', error);
+    res.status(500).json({ error: 'Failed to create web call', details: error.message });
   }
 });
 
