@@ -133,9 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Insert the message in place of the button
     voiceButton.parentNode.insertBefore(serviceMessage, voiceButton);
-    
-    // Update status
-    updateStatus('Voice service unavailable', 'error');
   }
   
   function setupRetellEventListeners() {
