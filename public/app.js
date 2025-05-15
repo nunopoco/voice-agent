@@ -77,8 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   function showServiceUnavailableMessage(details = 'The voice service is currently unavailable. Please try again later.') {
-    // Hide the voice button
+    // Hide the voice button and status
     voiceButton.classList.add('hidden');
+    voiceStatus.classList.add('hidden');
     
     // Remove any existing service unavailable message
     const existingMessage = document.querySelector('.service-unavailable');
@@ -105,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
       serviceMessage.remove();
       
       // Show loading state
+      voiceStatus.classList.remove('hidden');
       updateStatus('Checking service availability...', 'info');
       
       // Check service availability again
