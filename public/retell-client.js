@@ -1,26 +1,95 @@
-// Retell Web Client SDK - Using official Retell SDK via npm package
-import { RetellWebClient as RetellSDK } from '/node_modules/retell-client-js-sdk/dist/index.js';
+// Retell Web Client SDK - Using official Retell SDK via CDN
+// We'll use a script tag to load the SDK
+let RetellSDK;
 
 // Create a wrapper class that uses the official Retell SDK
 export class RetellWebClient {
   constructor() {
-    try {
-      // Create the official Retell SDK client
-      this.client = new RetellSDK();
-      this.connected = false;
-      this.isAgentTalking = false;
-      
-      // Log initialization
-      console.log("RetellWebClient initialized with official Retell SDK from npm package");
-    } catch (error) {
-      console.error("Error initializing RetellWebClient:", error);
-      throw new Error("Failed to initialize RetellWebClient: " + error.message);
-    }
+    this.connected = false;
+    this.isAgentTalking = false;
+    this.client = null;
+    this.sdkLoaded = false;
+    this.initPromise = this.loadSDK();
+  }
+  
+  async loadSDK() {
+    return new Promise((resolve, reject) => {
+      try {
+        // Check if the SDK is already loaded
+        if (window.RetellWebClient) {
+          console.log("RetellWebClient SDK already loaded");
+          RetellSDK = window.RetellWebClient;
+          this.client = new RetellSDK();
+          this.sdkLoaded = true;
+          resolve();
+          return;
+        }
+        
+        // Load the SDK script
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/retell-client-js-sdk@latest/dist/index.umd.js';
+        script.onload = () => {
+          console.log('Retell SDK loaded successfully from CDN');
+          RetellSDK = window.RetellWebClient;
+          this.client = new RetellSDK();
+          this.sdkLoaded = true;
+          resolve();
+        };
+        script.onerror = (error) => {
+          console.error('Failed to load Retell SDK from CDN:', error);
+          
+          // Try loading from local path as fallback
+          console.log('Trying to load Retell SDK from local path...');
+          const localScript = document.createElement('script');
+          localScript.src = '/node_modules/retell-client-js-sdk/dist/index.umd.js';
+          
+          localScript.onload = () => {
+            console.log('Retell SDK loaded successfully from local path');
+            RetellSDK = window.RetellWebClient;
+            this.client = new RetellSDK();
+            this.sdkLoaded = true;
+            resolve();
+          };
+          
+          localScript.onerror = (localError) => {
+            console.error('Failed to load Retell SDK from local path:', localError);
+            reject(new Error('Failed to load Retell SDK from both CDN and local path'));
+          };
+          
+          document.head.appendChild(localScript);
+        };
+        
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error("Error loading RetellWebClient SDK:", error);
+        reject(error);
+      }
+    });
   }
 
   async startCall({ accessToken, captureDeviceId = 'default', playbackDeviceId = 'default', sampleRate = 16000 }) {
     try {
       console.log('RetellWebClient: Starting call with access token');
+      
+      // Wait for SDK to load if it hasn't already
+      if (!this.sdkLoaded) {
+        console.log('RetellWebClient: Waiting for SDK to load...');
+        await this.initPromise;
+        console.log('RetellWebClient: SDK loaded, proceeding with call');
+      }
+      
+      // First, explicitly request microphone permission
+      try {
+        console.log('RetellWebClient: Requesting microphone permission...');
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log('RetellWebClient: Microphone permission granted!');
+        
+        // Stop the stream immediately - we just needed the permission
+        stream.getTracks().forEach(track => track.stop());
+      } catch (micError) {
+        console.error('RetellWebClient: Microphone permission denied:', micError);
+        throw new Error('Microphone permission denied. Please allow microphone access in your browser settings and try again.');
+      }
       
       // Log the parameters for debugging
       console.log('RetellWebClient: Call parameters:', {
@@ -48,9 +117,16 @@ export class RetellWebClient {
       
       // Check if it's a permission error
       if (error.name === 'NotAllowedError' || 
-          (error.message && error.message.includes('Permission'))) {
+          (error.message && error.message.includes('Permission')) ||
+          (error.message && error.message.includes('permission'))) {
         console.error('RetellWebClient: Microphone permission denied');
-        throw new Error('Microphone permission denied: ' + error.message);
+        throw new Error('Microphone permission denied. Please allow microphone access in your browser settings and try again.');
+      }
+      
+      // Check if it's a security error (often related to HTTPS requirements)
+      if (error.name === 'SecurityError') {
+        console.error('RetellWebClient: Security error - microphone access may require HTTPS');
+        throw new Error('Security error: Microphone access may require HTTPS. Please use a secure connection.');
       }
       
       this.stopCall();
@@ -58,9 +134,19 @@ export class RetellWebClient {
     }
   }
 
-  stopCall() {
+  async stopCall() {
     try {
       console.log('RetellWebClient: Stopping call');
+      
+      // Wait for SDK to load if it hasn't already
+      if (!this.sdkLoaded) {
+        try {
+          await this.initPromise;
+        } catch (error) {
+          console.error('RetellWebClient: SDK failed to load, cannot stop call:', error);
+          return false;
+        }
+      }
       
       // Stop the call using the official SDK
       if (this.client) {
@@ -78,14 +164,34 @@ export class RetellWebClient {
   }
   
   // Forward event listener registration to the SDK client
-  on(event, callback) {
+  async on(event, callback) {
+    // Wait for SDK to load if it hasn't already
+    if (!this.sdkLoaded) {
+      try {
+        await this.initPromise;
+      } catch (error) {
+        console.error(`RetellWebClient: SDK failed to load, cannot register ${event} event:`, error);
+        return;
+      }
+    }
+    
     if (this.client) {
       return this.client.on(event, callback);
     }
   }
   
   // Forward event listener removal to the SDK client
-  off(event, callback) {
+  async off(event, callback) {
+    // Wait for SDK to load if it hasn't already
+    if (!this.sdkLoaded) {
+      try {
+        await this.initPromise;
+      } catch (error) {
+        console.error(`RetellWebClient: SDK failed to load, cannot unregister ${event} event:`, error);
+        return;
+      }
+    }
+    
     if (this.client) {
       return this.client.off(event, callback);
     }

@@ -1,3 +1,5 @@
+import { RetellWebClient } from './retell-client.js';
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log("DOM fully loaded");
   
@@ -332,7 +334,13 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       updateStatus('Starting call...');
       
-      // First, explicitly request microphone permission
+      // First, check if the browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        updateStatus('Your browser does not support microphone access. Please use a modern browser like Chrome, Firefox, or Edge.', 'error');
+        throw new Error('Browser does not support microphone access');
+      }
+      
+      // Explicitly request microphone permission
       try {
         console.log('Requesting microphone permission...');
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -340,9 +348,29 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Stop the stream immediately - we just needed the permission
         stream.getTracks().forEach(track => track.stop());
+        
+        // Hide any expanded permission notes
+        const permissionNote = document.querySelector('.permission-note');
+        if (permissionNote) {
+          permissionNote.innerHTML = 'This app requires microphone access';
+          permissionNote.classList.remove('expanded');
+        }
       } catch (micError) {
         console.error('Microphone permission denied:', micError);
         updateStatus('Microphone access denied. Please allow microphone access.', 'error');
+        
+        // Show more detailed instructions
+        const permissionNote = document.querySelector('.permission-note');
+        if (permissionNote) {
+          permissionNote.innerHTML = `
+            <strong>How to enable microphone:</strong><br>
+            1. Click the lock/site settings icon in your browser's address bar<br>
+            2. Find "Microphone" and change it to "Allow"<br>
+            3. Refresh the page and try again
+          `;
+          permissionNote.classList.add('expanded');
+        }
+        
         throw new Error('Microphone permission denied');
       }
       

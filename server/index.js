@@ -44,6 +44,7 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
+app.use('/node_modules', express.static(path.join(__dirname, '../node_modules')));
 
 // Routes
 app.get('/api/user', (req, res) => {

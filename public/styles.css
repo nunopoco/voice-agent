@@ -164,6 +164,21 @@ main {
   text-align: center;
   font-style: italic;
   margin-top: 5px;
+  transition: all 0.3s ease;
+}
+
+.permission-note.expanded {
+  font-size: 0.9rem;
+  color: #ff9800;
+  background-color: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 8px;
+  padding: 10px;
+  margin: 10px auto;
+  max-width: 90%;
+  font-style: normal;
+  line-height: 1.5;
+  text-align: left;
 }
 
 @keyframes pulse {
