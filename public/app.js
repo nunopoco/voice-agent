@@ -76,18 +76,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   
-  function showServiceUnavailableMessage() {
+  function showServiceUnavailableMessage(details = 'The voice service is currently unavailable. Please try again later.') {
     // Hide the voice button
     voiceButton.classList.add('hidden');
+    
+    // Remove any existing service unavailable message
+    const existingMessage = document.querySelector('.service-unavailable');
+    if (existingMessage) {
+      existingMessage.remove();
+    }
     
     // Create and show service unavailable message
     const serviceMessage = document.createElement('div');
     serviceMessage.className = 'service-unavailable';
     serviceMessage.innerHTML = `
       <i class="fas fa-exclamation-triangle"></i>
-      <p>Voice service unavailable at the moment.</p>
-      <p class="service-unavailable-details">Please try again later.</p>
+      <p>Voice Service Unavailable</p>
+      <p class="service-unavailable-details">${details}</p>
     `;
+    
+    // Add retry button
+    const retryButton = document.createElement('button');
+    retryButton.textContent = 'Try Again';
+    retryButton.className = 'button';
+    retryButton.style.marginTop = '15px';
+    retryButton.addEventListener('click', async () => {
+      // Remove the message
+      serviceMessage.remove();
+      
+      // Show loading state
+      updateStatus('Checking service availability...', 'info');
+      
+      // Check service availability again
+      const isAvailable = await checkRetellServiceAvailability();
+      
+      if (isAvailable) {
+        // Show the voice button
+        voiceButton.classList.remove('hidden');
+        
+        // Initialize Retell client
+        initRetellClient();
+        
+        // Update status
+        updateStatus('Service is now available', 'success');
+        
+        // Reset status after a delay
+        setTimeout(() => {
+          updateStatus('Tap to start call');
+        }, 3000);
+      } else {
+        // Show unavailable message again
+        showServiceUnavailableMessage('The voice service is still unavailable. Please try again later.');
+      }
+    });
+    serviceMessage.appendChild(retryButton);
     
     // Insert the message in place of the button
     voiceButton.parentNode.insertBefore(serviceMessage, voiceButton);
